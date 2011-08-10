@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import imaplib
 import ConfigParser
 from pprint import pprint
@@ -119,13 +118,3 @@ class IMAPConnection:
 			return new_folder
 		else:
 			return None
-		
-
-if __name__ == '__main__':
-	
-	conn = IMAPConnection('config.txt')
-	conn.connect()
-	folders = conn.get_folders()
-	for k in folders.keys():
-		print( k )
-	
