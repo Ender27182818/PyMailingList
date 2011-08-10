@@ -2,6 +2,7 @@ import imaplib
 import ConfigParser
 from pprint import pprint
 import re
+import email
 
 class IMAPConnectionError(Exception):
 	"""Simple class for all IMAPConnection errors"""
@@ -51,6 +52,7 @@ class IMAPConnection:
 		"""Create the connection using the provided config file"""
 		self.folders = {}
 		self.folders['/'] = IMAPFolder('/', None)
+		self.selected_folder_name = '/'
 
 		# Read the config file
 		config = ConfigParser.ConfigParser()
@@ -98,16 +100,16 @@ class IMAPConnection:
 			folder.delimiter = delimiter
 		return self.folders
 
-	def select_folder(self, folder_name):
+	def select_folder(self, folder_name, readonly=True):
 		"""Selects the given folder causing all transactions to occur on that folder. Returns all messages in the given mailbox on success, raises an exception on failure"""
 		self._ensure_connection()
 			
-		response, data = self.connection.select(folder_name)
+		response, data = self.connection.select(folder_name, readonly=readonly)
 		if( response != "OK" ):
 			raise IMAPConnectionError("Bad response: " + response)
 		if( response == "NO" ):
 			raise IMAPConnectionError("Specified folder {0} does not exist".format(folder_name))
-		if( type(data) != list ):
+		if not isinstance(data, list):
 			raise IMAPConnectionError("Unrecognized data response: " + repr(data))
 		return int(data[0])
 
@@ -130,8 +132,20 @@ class IMAPConnection:
 		if( response != "OK" ):
 			raise IMAPConnectionError("Bad response: " + response)
 
-		if type(msg_ids) != list:
+		if not isinstance(msg_ids, list):
 			raise IMAPConnectionError("Unrecognized message ID string: " + repr(msg_ids))
 		
 		msg_ids = msg_ids[0].split(' ')
 		return msg_ids
+
+	def get_message(self, message_id):
+		"""Returns the header of the given message ID"""
+		self._ensure_connection()
+
+		response, msg_data = self.connection.fetch(message_id, '(RFC822)')
+		for response_part in msg_data:
+			if isinstance(response_part, tuple):
+				msg = email.message_from_string(response_part[1])
+				for header in [ 'subject', 'to', 'from' ]:
+					print '%-8s: %s' % (header.upper(), msg[header])
+				print response_part[1]

@@ -8,4 +8,5 @@ if __name__ == '__main__':
 	print("Found {0} messages in INBOX".format(message_count))
 	message_ids = conn.get_message_ids()
 	print(message_ids)
+	conn.get_message('1')
 	
