@@ -1,8 +1,12 @@
-[server]
+[imap_server]
 hostname = some_server
 ssl = yes
 port = 993
 
-[account]
+[imap_account]
 username = testuser
 password = testpass
+
+[bot]
+name = 'ExampleBot'
+address = 'example_bot@example.com''

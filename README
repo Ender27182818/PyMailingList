@@ -6,12 +6,24 @@ PyMailingList is designed to meet a particular need that I had - a mailing list 
 CONFIGURATION
 	Configuration is done by modifying the config.example and copying it to config.txt. There are several options divided into sections:
 
-	SERVER
-	* hostname - The hostname of the server to connect to
-	* port - The port on which to communicate
-	* ssl - Whether or not to use SSL
+	IMAP_SERVER
+	* hostname - The hostname of the IMAP server to connect to
+	* port - The port on which to communicate with the IMAP server
+	* ssl - Whether or not to use SSL with the IMAP server
 	
-	ACCOUNT
+	SMTP_SERVER
+	* hostname - The hostname of the SMTP server to connect to
+	* port - The port on which to communicate with the SMTP server
+	* ssl - Whether or not to use SSL with the SMTP server
+	
+	IMAP_ACCOUNT
+	* username - The username to use when logging in
+	* password - The password to use when logging in
+	
+	IMAP_ACCOUNT
 	* username - The username to use when logging in
 	* password - The password to use when logging in
 
+	BOT
+	* name - The name that the bot will use when responding to emails
+	* address - The address to be added to emails sent by the bot

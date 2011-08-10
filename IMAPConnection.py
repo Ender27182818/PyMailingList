@@ -57,11 +57,13 @@ class IMAPConnection:
 		# Read the config file
 		config = ConfigParser.ConfigParser()
 		config.read(config_file)
-		self.hostname = config.get('server', 'hostname')
-		self.port = config.getint('server', 'port')
-		self.ssl = config.getboolean('server', 'ssl')
-		self.username = config.get('account', 'username')
-		self.password = config.get('account', 'password', True)
+		self.hostname = config.get('imap_server', 'hostname')
+		self.port = config.getint('imap_server', 'port')
+		self.ssl = config.getboolean('imap_server', 'ssl')
+		self.username = config.get('imap_account', 'username')
+		self.password = config.get('imap_account', 'password', True)
+		self.bot_name = config.get('bot', 'name')
+		self.bot_address = config.get('bot', 'address')
 	
 	def _ensure_connection(self):
 		"""Ensures that a connection is made and raises an error if not"""
@@ -159,3 +161,4 @@ class IMAPConnection:
 		# Turn the message body into an actual email instance
 		message = email.message_from_string(body)
 		return message
+
