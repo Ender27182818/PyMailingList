@@ -1,0 +1,6 @@
+PyMailingList is designed to meet a particular need that I had - a mailing list that will work with any mail server and will do the following:
+1 - Allow arbitrary users to subscribe/unsubscribe the list via email
+2 - Keep an archive of all discussions that is searchable from a website
+3 - Prevent abuse by limiting email size
+
+
