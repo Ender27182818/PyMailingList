@@ -103,10 +103,13 @@ class IMAPConnection:
 		self._ensure_connection()
 			
 		response, data = self.connection.select(folder_name)
-		if( reponse != "OK" ):
+		if( response != "OK" ):
 			raise IMAPConnectionError("Bad response: " + response)
-		if( reponse == "NO" ):
+		if( response == "NO" ):
 			raise IMAPConnectionError("Specified folder {0} does not exist".format(folder_name))
+		if( type(data) != list ):
+			raise IMAPConnectionError("Unrecognized data response: " + repr(data))
+		return int(data[0])
 
 	def get_folder(self, folder_name, create=False, parent=None):
 		"""Returns the folder with the given name, if it exists, or None if it does not, unless create is specified, in which case it creates the folder and returns the created one"""
@@ -118,3 +121,17 @@ class IMAPConnection:
 			return new_folder
 		else:
 			return None
+
+	def get_message_ids(self):
+		"""Returns the list of message IDs of the messages in the given folder"""
+		self._ensure_connection()
+
+		response, msg_ids = self.connection.search(None, 'ALL')
+		if( response != "OK" ):
+			raise IMAPConnectionError("Bad response: " + response)
+
+		if type(msg_ids) != list:
+			raise IMAPConnectionError("Unrecognized message ID string: " + repr(msg_ids))
+		
+		msg_ids = msg_ids[0].split(' ')
+		return msg_ids
