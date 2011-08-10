@@ -16,17 +16,43 @@ class IMAPFolder:
 	list_response_pattern = re.compile(r'\((?P<flags>.*?)\) "(?P<delimiter>.*)" (?P<name>.*)')
 
 	"""Defines a folder in an IMAP account"""
-	def __init__(self, line, parent='/'):
-		"""Parses the given data line into this object"""
+	def __init__(self, folder_name, parent):
+		self.children = []
+		self.folder_name = folder_name
+		if parent is None:
+			self.path = '/'
+		else:
+			self.bind_parent(parent)
+			
+	
+	def bind_parent(self, parent):
 		self.parent = parent
-		self.flags, self.delimiter, self.mailbox_name = IMAPFolder.list_response_pattern.match(line).groups()
-		self.mailbox_name = self.mailbox_name.strip('"')
-		self.path = parent + self.mailbox_name
+		# Fix up my path
+		if( parent.path == '/' ):
+			self.path = '/' + self.folder_name
+		else:
+			self.path = parent.path + '/' + self.folder_name
+
+		# Add me to my parents children, if I'm not already
+		for c in parent.children:
+			if c is self:
+				return
+		parent.children.append(self)
+
+	@staticmethod
+	def parse_list_line(line):
+		"""Parses the given 'list' data line into its constituent parts"""
+		flags, delimiter, folder_name = IMAPFolder.list_response_pattern.match(line).groups()
+		folder_name = folder_name.strip('"')
+		return flags, delimiter, folder_name
 		
 class IMAPConnection:
 	"""Defines a connection to an IMAP server and allows some convenience functions"""
 	def __init__(self, config_file):
 		"""Create the connection using the provided config file"""
+		self.folders = {}
+		self.folders['/'] = IMAPFolder('/', None)
+
 		# Read the config file
 		config = ConfigParser.ConfigParser()
 		config.read(config_file)
@@ -35,6 +61,11 @@ class IMAPConnection:
 		self.ssl = config.getboolean('server', 'ssl')
 		self.username = config.get('account', 'username')
 		self.password = config.get('account', 'password', True)
+	
+	def _ensure_connection(self):
+		"""Ensures that a connection is made and raises an error if not"""
+		if( not hasattr(self, 'connection') ):
+			raise IMAPConnectionError("You need to connect first")
 
 	def connect(self):
 		"""Connects to the server specified in the config file"""
@@ -46,14 +77,12 @@ class IMAPConnection:
 		self.connection.login(self.username, self.password)
 		print( "Connected." )
 	
-	def get_folders(self, parent_folder='/'):
+
+	def get_folders(self, parent_folder_path='/'):
 		"""Returns a list of the folders"""
-		if( hasattr(self, 'folders') ):
-			return self.folders
-		if( not hasattr(self, 'connection') ):
-			raise IMAPConnectionError("You need to connect first")
+		self._ensure_connection()
 		
-		if( parent_folder is '/'):
+		if( parent_folder_path is '/'):
 			response, data = self.connection.list()
 		else:
 			response, data = self.connection.list(directory=parent_folder)
@@ -62,12 +91,34 @@ class IMAPConnection:
 			raise IMAPConnectionError("Bad response: " + response)
 		
 		# Parse the returned data
-		self.folders = {}
+		parent_folder = self.get_folder(parent_folder_path)
 		for line in data:
-			new_folder = IMAPFolder( line, parent=parent_folder )
-			self.folders[new_folder.path] = new_folder
+			flags, delimiter, folder_name = IMAPFolder.parse_list_line(line)
+			folder = self.get_folder( folder_name, create=True, parent=parent_folder )
+			folder.flags = flags
+			folder.delimiter = delimiter
 		return self.folders
+
+	def select_folder(self, folder_name):
+		"""Selects the given folder causing all transactions to occur on that folder. Returns all messages in the given mailbox on success, raises an exception on failure"""
+		self._ensure_connection()
 			
+		response, data = self.connection.select(folder_name)
+		if( reponse != "OK" ):
+			raise IMAPConnectionError("Bad response: " + response)
+		if( reponse == "NO" ):
+			raise IMAPConnectionError("Specified folder {0} does not exist".format(folder_name))
+
+	def get_folder(self, folder_name, create=False, parent=None):
+		"""Returns the folder with the given name, if it exists, or None if it does not, unless create is specified, in which case it creates the folder and returns the created one"""
+		if( folder_name in self.folders.keys() ):
+			return self.folders[folder_name]
+		if( create ):
+			new_folder = IMAPFolder(folder_name, parent=parent)
+			self.folders[new_folder.path] = new_folder
+			return new_folder
+		else:
+			return None
 		
 
 if __name__ == '__main__':
