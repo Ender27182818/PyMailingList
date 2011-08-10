@@ -3,4 +3,15 @@ PyMailingList is designed to meet a particular need that I had - a mailing list 
 2 - Keep an archive of all discussions that is searchable from a website
 3 - Prevent abuse by limiting email size
 
+CONFIGURATION
+	Configuration is done by modifying the config.example and copying it to config.txt. There are several options divided into sections:
+
+	SERVER
+	* hostname - The hostname of the server to connect to
+	* port - The port on which to communicate
+	* ssl - Whether or not to use SSL
+	
+	ACCOUNT
+	* username - The username to use when logging in
+	* password - The password to use when logging in
 
