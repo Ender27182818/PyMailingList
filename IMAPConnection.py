@@ -16,10 +16,12 @@ class IMAPFolder:
 	list_response_pattern = re.compile(r'\((?P<flags>.*?)\) "(?P<delimiter>.*)" (?P<name>.*)')
 
 	"""Defines a folder in an IMAP account"""
-	def __init__(self, line):
+	def __init__(self, line, parent='/'):
 		"""Parses the given data line into this object"""
+		self.parent = parent
 		self.flags, self.delimiter, self.mailbox_name = IMAPFolder.list_response_pattern.match(line).groups()
 		self.mailbox_name = self.mailbox_name.strip('"')
+		self.path = parent + self.mailbox_name
 		
 class IMAPConnection:
 	"""Defines a connection to an IMAP server and allows some convenience functions"""
@@ -44,19 +46,27 @@ class IMAPConnection:
 		self.connection.login(self.username, self.password)
 		print( "Connected." )
 	
-	def get_folders(self):
+	def get_folders(self, parent_folder='/'):
 		"""Returns a list of the folders"""
+		if( hasattr(self, 'folders') ):
+			return self.folders
 		if( not hasattr(self, 'connection') ):
 			raise IMAPConnectionError("You need to connect first")
-		response, data = self.connection.list()
+		
+		if( parent_folder is '/'):
+			response, data = self.connection.list()
+		else:
+			response, data = self.connection.list(directory=parent_folder)
+
 		if( response != "OK" ):
 			raise IMAPConnectionError("Bad response: " + response)
 		
 		# Parse the returned data
-		folders = []
+		self.folders = {}
 		for line in data:
-			folders.append( IMAPFolder( line ) )
-		return folders
+			new_folder = IMAPFolder( line, parent=parent_folder )
+			self.folders[new_folder.path] = new_folder
+		return self.folders
 			
 		
 
@@ -65,6 +75,6 @@ if __name__ == '__main__':
 	conn = IMAPConnection('config.txt')
 	conn.connect()
 	folders = conn.get_folders()
-	for f in folders:
-		print( f.mailbox_name )
+	for k in folders.keys():
+		print( k )
 	
