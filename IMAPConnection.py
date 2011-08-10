@@ -143,9 +143,19 @@ class IMAPConnection:
 		self._ensure_connection()
 
 		response, msg_data = self.connection.fetch(message_id, '(RFC822)')
-		for response_part in msg_data:
-			if isinstance(response_part, tuple):
-				msg = email.message_from_string(response_part[1])
-				for header in [ 'subject', 'to', 'from' ]:
-					print '%-8s: %s' % (header.upper(), msg[header])
-				print response_part[1]
+		if( response != "OK" ):
+			raise IMAPConnectionError("Bad response: " + response)
+		# The data that comes back is funny - it's a list of two items, the second being a string
+		# with the messages' flags. The first item in the list is a tuple with data about the message
+		# body as a string and the body itself
+		if not isinstance(msg_data, list) or len(msg_data) != 2:
+			raise IMAPConnectionError("Unrecognized message: " + repr(msg_data))
+		flags = msg_data[1]
+		if not isinstance(msg_data[0], tuple) or len(msg_data[0]) != 2:
+			raise IMAPConnectionError("Unrecognized message data: " + repr(msg_data[0]))
+		body_data = msg_data[0][0]
+		body = msg_data[0][1]
+
+		# Turn the message body into an actual email instance
+		message = email.message_from_string(body)
+		return message
