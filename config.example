@@ -7,6 +7,15 @@ port = 993
 username = testuser
 password = testpass
 
+[smtp_server]
+hostname = some_server
+port = 453
+ssl = yes
+
+[smtp_account]
+username = otheruser
+password = otheruser_pass
+
 [bot]
-name = 'ExampleBot'
-address = 'example_bot@example.com''
+name = ExampleBot
+address = example_bot@example.com
