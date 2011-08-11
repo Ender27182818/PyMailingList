@@ -48,7 +48,7 @@ class IMAPFolder:
 		
 class IMAPConnection:
 	"""Defines a connection to an IMAP server and allows some convenience functions"""
-	def __init__(self, config_file):
+	def __init__(self, config_file, debug=False):
 		"""Create the connection using the provided config file"""
 		self.folders = {}
 		self.folders['/'] = IMAPFolder('/', None)
@@ -70,7 +70,7 @@ class IMAPConnection:
 		if( not hasattr(self, 'connection') ):
 			raise IMAPConnectionError("You need to connect first")
 
-	def connect(self):
+	def connect(self, debug=False):
 		"""Connects to the server specified in the config file"""
 		print( "Connecting to {0}:{3} with username {1} and SSL {2}".format(self.hostname, self.username, self.ssl, self.port) )
 		if( self.ssl ):
@@ -113,6 +113,7 @@ class IMAPConnection:
 			raise IMAPConnectionError("Specified folder {0} does not exist".format(folder_name))
 		if not isinstance(data, list):
 			raise IMAPConnectionError("Unrecognized data response: " + repr(data))
+		self.selected_folder = folder_name
 		return int(data[0])
 
 	def get_folder(self, folder_name, create=False, parent=None):
@@ -126,9 +127,29 @@ class IMAPConnection:
 		else:
 			return None
 
-	def get_message_ids(self):
+	message_status_line_pattern = re.compile(r'(?P<name>.*?) \(MESSAGES (?P<message_count>.*)\)')
+	def _parse_status_message_status_line( self, line ):
+		"""Parses a line from a status request looking for message count and returns the mailbox name and the message count"""
+		folder_name, message_count = self.message_status_line_pattern.match(line).groups()
+		return folder_name, int(message_count)
+		
+		
+		
+	def get_message_ids(self, debug=False):
 		"""Returns the list of message IDs of the messages in the given folder"""
 		self._ensure_connection()
+
+		# Make sure there are messages in the inbox
+		response, statusline = self.connection.status( self.selected_folder, "(MESSAGES)" )
+		if response != "OK":
+			raise IMAPConnectionError("Bad response on status: " + response)
+		if debug:
+			print( "get_message_ids: Status request returned: {0} {1}".format( response, statusline ) )
+		folder_name, message_count = self._parse_status_message_status_line( statusline[0] )
+		if debug:
+			print( "Parsed out folder name '{0}' and message count '{1}'".format(folder_name, message_count) )
+		if message_count == 0:
+			return []
 
 		response, msg_ids = self.connection.search(None, 'ALL')
 		if( response != "OK" ):
@@ -140,9 +161,12 @@ class IMAPConnection:
 		msg_ids = msg_ids[0].split(' ')
 		return msg_ids
 
-	def get_message(self, message_id):
+	def get_message(self, message_id, debug=False):
 		"""Returns the header of the given message ID"""
 		self._ensure_connection()
+
+		if debug:
+			print( "Getting message with id '{0}'".format(message_id) )
 
 		response, msg_data = self.connection.fetch(message_id, '(RFC822)')
 		if( response != "OK" ):
@@ -161,4 +185,29 @@ class IMAPConnection:
 		# Turn the message body into an actual email instance
 		message = email.message_from_string(body)
 		return message
+
+	def copy_message( self, message_id, dest_folder_name ):
+		"""Copy the message with the given ID to the given folder from the selected folder"""
+		self._ensure_connection()
+	
+		response = self.connection.copy(message_id, dest_folder_name)
+		if response[0] != 'OK':
+			raise IMAPConnectionError("Unable to copy message: " + repr(response) )
+	
+	def delete_message( self, message_id ):
+		"""Delete the given message from the given folder"""
+		self._ensure_connection()
+
+		response, info = self.connection.store(message_id, '+FLAGS', r'(\Deleted)')
+		if response != 'OK':
+			raise IMAPConnectionError("Failed to delete message: {0}\n{1}".format(response, info))
+
+		response, info = self.connection.expunge()
+		if response != 'OK':
+			raise IMAPConnectionError("Failed to expunge messages: {0}\n{1}".format(response, info))
+		
+	def move_message( self, message_id, dest_folder_name ):
+		"""Move the message with the given ID to the given folder"""
+		self.copy_message( message_id, dest_folder_name )
+		self.delete_message( message_id )
 

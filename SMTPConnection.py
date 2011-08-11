@@ -1,6 +1,7 @@
 import smtplib
 import ConfigParser
 import email
+from email.mime.multipart import MIMEMultipart
 
 class SMTPConnectionError(Exception):
 	"""Simple class for all SMTPConnection errors"""
@@ -11,7 +12,7 @@ class SMTPConnectionError(Exception):
 
 class SMTPConnection:
 	"""Defines a connection to an IMAP server and allows some convenience functions"""
-	def __init__(self, config_file):
+	def __init__(self, config_file, debug=False):
 		"""Create the connection using the provided config file"""
 		# Read the config file
 		config = ConfigParser.ConfigParser()
@@ -32,7 +33,7 @@ class SMTPConnection:
 		if( not hasattr(self, 'connection') ):
 			raise SMTPConnectionError("You need to connect first")
 
-	def connect(self):
+	def connect(self, debug=False):
 		"""Connects to the server specified in the config file"""
 		print( "Connecting SMTP server {0}:{3} with username {1} and SSL {2}".format(self.hostname, self.username, self.ssl, self.port) )
 		if( self.ssl ):
@@ -43,7 +44,7 @@ class SMTPConnection:
 		print( "Connected." )
 	
 	def send_message( self, to, subject, body ):
-		"""Send a message with the given subject and body to the given recipient(s)"""
+		"""Send a message with the given subject and body to the given recipient(s). Return true if it worked, false otherwise"""
 		self._ensure_connection()
 
 		if isinstance(to, tuple) or isinstance(to, list):
@@ -51,12 +52,25 @@ class SMTPConnection:
 		else:
 			to_line = repr(to)
 
-		msg = email.MIMEText.MIMEText(body, 'plain')
-		msg['Subject'] = subject
-		msg['From'] = self.bot_name
+		# If it's just a string, send it as a plain string
+		if isinstance(body, str):
+			msg = email.MIMEText.MIMEText(body, 'plain')
+			msg['Subject'] = subject
+			msg['From'] = self.bot_name
+			self.connection.sendmail(self.bot_address, to_line, msg.as_string())
+			return True
+		# Try some different types
+		else:
+			# If it's a list of things, try that
+			try:
+				msg = MIMEMultipart()
+				msg['Subject'] = subject
+				msg['From'] = self.bot_name
+				for item in body:
+					if isinstance(item, email.message.Message):
+						msg.attach( item )
+				self.connection.sendmail(self.bot_address, to_line, msg.as_string())
+				return True
+			except TypeError:
+				return False
 		
-		return self.connection.sendmail(self.bot_address, to_line, msg.as_string())
-		
-		
-
-
