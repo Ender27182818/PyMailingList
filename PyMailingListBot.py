@@ -47,7 +47,7 @@ def handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address ):
 	print("Found subscription request from " + from_address)
 	add_subscriber(from_address)
 	imap_conn.move_message( message_id, "Subscriptions" )
-	worked = smtp_conn.send_message( from_address, 'Subscription Request', "You have been subscribed. Thank you" )
+	worked = smtp_conn.send_message( from_address, 'Subscription Request', "You have been subscribed. Thank you. You may unsubscribe any time by replying to this message with the subject 'unsubscribe'" )
 	if not worked:
 		print("Failed to properly handle subscription request")
 		sys.exit(0)
@@ -56,7 +56,7 @@ def handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address )
 	print("Found unsubscribe request from " + from_address)
 	remove_subscriber(from_address)
 	imap_conn.move_message( message_id, "Subscriptions" )
-	worked = smtp_conn.send_message( from_address, 'Unsubscription Request', "You have been un-subscribed. Thank you" )
+	worked = smtp_conn.send_message( from_address, 'Unsubscription Request', "You have been un-subscribed. Thank you. If you ever wish to re-subscribe you may do so by sending a message to this mailing list with the subject 'subscribe'" )
 
 def handle_message( imap_conn, smtp_conn, message_id, message ):
 	# Handle sending a message out
@@ -69,6 +69,7 @@ def handle_message( imap_conn, smtp_conn, message_id, message ):
 		print("Failed to properly forward message")
 		sys.exit(0)
 	imap_conn.move_message( message_id, "Archive" )
+	print( "Handled forwarding message '{0}' from {1} to the list".format( subject, message['from'] ) )
 	
 if __name__ == '__main__':
 	options = _parse_commandline()

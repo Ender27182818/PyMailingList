@@ -2,6 +2,7 @@ import smtplib
 import ConfigParser
 import email
 from email.mime.multipart import MIMEMultipart
+from email.utils import COMMASPACE
 
 class SMTPConnectionError(Exception):
 	"""Simple class for all SMTPConnection errors"""
@@ -43,21 +44,29 @@ class SMTPConnection:
 		self.connection.login(self.username, self.password)
 		print( "Connected." )
 	
-	def send_message( self, to, subject, body ):
+	def send_message( self, to, subject, body, bcc=[] ):
 		"""Send a message with the given subject and body to the given recipient(s). Return true if it worked, false otherwise"""
 		self._ensure_connection()
 
-		if isinstance(to, tuple) or isinstance(to, list):
-			to_line = str.join(' ', to)
-		else:
-			to_line = repr(to)
+		# Create the 'To:' line in the message
+		#try:
+			#to_line = COMMASPACE.join(to)
+		#except TypeError:
+			#to_line = repr(to)
+
+		# Create the actual list of addresses we want to send to
+		try:
+			to = to + bcc
+		except TypeError:
+			to = [to] + bcc
 
 		# If it's just a string, send it as a plain string
 		if isinstance(body, str):
 			msg = email.MIMEText.MIMEText(body, 'plain')
 			msg['Subject'] = subject
 			msg['From'] = self.bot_name
-			self.connection.sendmail(self.bot_address, to_line, msg.as_string())
+			msg['To'] = self.bot_address
+			self.connection.sendmail(self.bot_address, to, msg.as_string())
 			return True
 		# Try some different types
 		else:
@@ -66,10 +75,11 @@ class SMTPConnection:
 				msg = MIMEMultipart()
 				msg['Subject'] = subject
 				msg['From'] = self.bot_name
+				msg['To'] = self.bot_address
 				for item in body:
 					if isinstance(item, email.message.Message):
 						msg.attach( item )
-				self.connection.sendmail(self.bot_address, to_line, msg.as_string())
+				self.connection.sendmail(self.bot_address, to, msg.as_string())
 				return True
 			except TypeError:
 				return False
