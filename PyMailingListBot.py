@@ -46,17 +46,20 @@ def handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address ):
 	"""Handles when a subscribe request message is received"""
 	print("Found subscription request from " + from_address)
 	add_subscriber(from_address)
-	imap_conn.move_message( message_id, "Subscriptions" )
 	worked = smtp_conn.send_message( from_address, 'Subscription Request', "You have been subscribed. Thank you. You may unsubscribe any time by replying to this message with the subject 'unsubscribe'" )
 	if not worked:
 		print("Failed to properly handle subscription request")
 		sys.exit(0)
+	imap_conn.move_message( message_id, "Subscriptions" )
 	
 def handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address ):
 	print("Found unsubscribe request from " + from_address)
 	remove_subscriber(from_address)
-	imap_conn.move_message( message_id, "Subscriptions" )
 	worked = smtp_conn.send_message( from_address, 'Unsubscription Request', "You have been un-subscribed. Thank you. If you ever wish to re-subscribe you may do so by sending a message to this mailing list with the subject 'subscribe'" )
+	if not worked:
+		print("Failed to properly handle un-subscription request")
+		sys.exit(0)
+	imap_conn.move_message( message_id, "Subscriptions" )
 
 def handle_message( imap_conn, smtp_conn, message_id, message ):
 	# Handle sending a message out
@@ -64,7 +67,7 @@ def handle_message( imap_conn, smtp_conn, message_id, message ):
 		subject = message['subject']
 	else:
 		subject = '[android-users] ' + message['subject']
-	worked = smtp_conn.send_message( subscribers, subject, message.get_payload() )
+	worked = smtp_conn.send_message( 'android-users-group@wavelink.com', subject, message.get_payload(), bcc=subscribers )
 	if not worked:
 		print("Failed to properly forward message")
 		sys.exit(0)
@@ -104,11 +107,13 @@ if __name__ == '__main__':
 					handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address )
 				else:
 					handle_message( imap_conn, smtp_conn, message_id, message )
+			else:
+				time.sleep(60)
+	
 		except IMAPConnectionError, e:
 			print("IMAPConnection error: " + repr(e))
 		except SMTPConnectionError, e:
 			print("SMTPConnection error: " + repr(e))
-		time.sleep(60)
 		
 			
 	
