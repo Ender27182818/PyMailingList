@@ -31,8 +31,7 @@ class SMTPConnection:
 	
 	def _ensure_connection(self):
 		"""Ensures that a connection is made and raises an error if not"""
-		if( not hasattr(self, 'connection') ):
-			raise SMTPConnectionError("You need to connect first")
+		self.connect()
 
 	def connect(self, debug=False):
 		"""Connects to the server specified in the config file"""
@@ -44,29 +43,22 @@ class SMTPConnection:
 		self.connection.login(self.username, self.password)
 		print( "Connected." )
 	
-	def send_message( self, to, subject, body, bcc=[] ):
+	def send_message( self, to, subject, body, debug=False ):
 		"""Send a message with the given subject and body to the given recipient(s). Return true if it worked, false otherwise"""
 		self._ensure_connection()
-
-		# Create the 'To:' line in the message
-		#try:
-			#to_line = COMMASPACE.join(to)
-		#except TypeError:
-			#to_line = repr(to)
-
-		# Create the actual list of addresses we want to send to
-		try:
-			to = to + bcc
-		except TypeError:
-			to = [to] + bcc
+	
+		if debug:
+			print( "Sending message '{0}' to {1}".format( subject[:40], to ) )
 
 		# If it's just a string, send it as a plain string
 		if isinstance(body, str):
 			msg = email.MIMEText.MIMEText(body, 'plain')
 			msg['Subject'] = subject
 			msg['From'] = self.bot_name
-			msg['To'] = self.bot_address
+			msg['To'] = to
+			if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string()[:30] ) )
 			self.connection.sendmail(self.bot_address, to, msg.as_string())
+			self.connection.quit()
 			return True
 		# Try some different types
 		else:
@@ -79,8 +71,11 @@ class SMTPConnection:
 				for item in body:
 					if isinstance(item, email.message.Message):
 						msg.attach( item )
+				if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string()[:30] ) )
 				self.connection.sendmail(self.bot_address, to, msg.as_string())
+				self.connection.quit()
 				return True
 			except TypeError:
+				self.connection.quit()
 				return False
 		

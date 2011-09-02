@@ -42,7 +42,7 @@ def _parse_commandline():
 	(options, args) = parser.parse_args()
 	return options
 
-def handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address ):
+def handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address, options ):
 	"""Handles when a subscribe request message is received"""
 	print("Found subscription request from " + from_address)
 	add_subscriber(from_address)
@@ -50,28 +50,28 @@ def handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address ):
 	if not worked:
 		print("Failed to properly handle subscription request")
 		sys.exit(0)
-	imap_conn.move_message( message_id, "Subscriptions" )
+	imap_conn.move_message( message_id, "Subscriptions", debug=options.debug )
 	
-def handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address ):
+def handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address, options ):
 	print("Found unsubscribe request from " + from_address)
 	remove_subscriber(from_address)
 	worked = smtp_conn.send_message( from_address, 'Unsubscription Request', "You have been un-subscribed. Thank you. If you ever wish to re-subscribe you may do so by sending a message to this mailing list with the subject 'subscribe'" )
 	if not worked:
 		print("Failed to properly handle un-subscription request")
 		sys.exit(0)
-	imap_conn.move_message( message_id, "Subscriptions" )
+	imap_conn.move_message( message_id, "Subscriptions", debug=options.debug )
 
-def handle_message( imap_conn, smtp_conn, message_id, message ):
+def handle_message( imap_conn, smtp_conn, message_id, message, options ):
 	# Handle sending a message out
 	if '[android-users]' in message['subject']:
 		subject = message['subject']
 	else:
 		subject = '[android-users] ' + message['subject']
-	worked = smtp_conn.send_message( 'android-users-group@wavelink.com', subject, message.get_payload(), bcc=subscribers )
+	worked = smtp_conn.send_message( subscribers, subject, message.get_payload(), debug=options.debug )
 	if not worked:
 		print("Failed to properly forward message")
 		sys.exit(0)
-	imap_conn.move_message( message_id, "Archive" )
+	imap_conn.move_message( message_id, "Archive", debug=options.debug )
 	print( "Handled forwarding message '{0}' from {1} to the list".format( subject, message['from'] ) )
 	
 if __name__ == '__main__':
@@ -91,7 +91,6 @@ if __name__ == '__main__':
 	imap_conn = IMAPConnection('config.txt')
 	imap_conn.connect(debug=options.debug)
 	smtp_conn = SMTPConnection('config.txt')
-	smtp_conn.connect(debug=options.debug)
 	message_count = imap_conn.select_folder("INBOX")
 	while( True ):
 		try:
@@ -102,11 +101,11 @@ if __name__ == '__main__':
 				from_address = message['from'].lower()
 				subject = message['subject'].lower()
 				if( subject == 'subscribe' ):
-					handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address )
+					handle_subscribe_request( imap_conn, smtp_conn, message_id, from_address, options )
 				elif subject == 'unsubscribe':
-					handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address )
+					handle_unsubscribe_request( imap_conn, smtp_conn, message_id, from_address, options )
 				else:
-					handle_message( imap_conn, smtp_conn, message_id, message )
+					handle_message( imap_conn, smtp_conn, message_id, message, options)
 			else:
 				time.sleep(60)
 	
