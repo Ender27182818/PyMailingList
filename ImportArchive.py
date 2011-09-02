@@ -74,7 +74,7 @@ def handle_message( imap_conn, message_id, message ):
 			
 		
 	print( "Handling message from {0}: {1}...".format( sender_name, subject[:50] ) )
-	new_message = Message( pk=message_id,sent_date=sent_date, sender=sender_email, sender_name=sender_name, content=content)
+	new_message = Message( pk=message_id,sent_date=sent_date, sender=sender_email, sender_name=sender_name, subject=subject, content=content)
 	new_message.save()
 
 	
