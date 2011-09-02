@@ -59,9 +59,7 @@ def handle_message( imap_conn, message_id, message ):
 	except Exception, ex:
 		print( "Skipping message #{0} because I can't parse the from line '{1}'".format( message_id, f ) )
 		return
-	subject = message['subject']
-	if '[android-users]' not in subject:
-		subject = '[android-users] ' + subject
+	subject = message['subject'].replace('[android-users]', '')
 	content = message.get_payload()
 	d = message['Date']
 	# Remove the timezone specifier since we don't have a good way to handle it yet
