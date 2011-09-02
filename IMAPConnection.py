@@ -186,17 +186,21 @@ class IMAPConnection:
 		message = email.message_from_string(body)
 		return message
 
-	def copy_message( self, message_id, dest_folder_name ):
+	def copy_message( self, message_id, dest_folder_name, debug=False ):
 		"""Copy the message with the given ID to the given folder from the selected folder"""
+		if debug:
+			print( "Copying message {0} to {1}".format( message_id, dest_folder_name ) )
 		self._ensure_connection()
 	
 		response = self.connection.copy(message_id, dest_folder_name)
 		if response[0] != 'OK':
 			raise IMAPConnectionError("Unable to copy message: " + repr(response) )
 	
-	def delete_message( self, message_id ):
+	def delete_message( self, message_id, debug=False ):
 		"""Delete the given message from the given folder"""
 		self._ensure_connection()
+
+		if debug: print( "Deleting message {0}".format( message_id ) )
 
 		response, info = self.connection.store(message_id, '+FLAGS', r'(\Deleted)')
 		if response != 'OK':
@@ -206,8 +210,10 @@ class IMAPConnection:
 		if response != 'OK':
 			raise IMAPConnectionError("Failed to expunge messages: {0}\n{1}".format(response, info))
 		
-	def move_message( self, message_id, dest_folder_name ):
+	def move_message( self, message_id, dest_folder_name, debug=False ):
 		"""Move the message with the given ID to the given folder"""
-		self.copy_message( message_id, dest_folder_name )
-		self.delete_message( message_id )
+		if debug:
+			print( "Moving message {0} to {1}".format( message_id, dest_folder_name ))
+		self.copy_message( message_id, dest_folder_name, debug=debug )
+		self.delete_message( message_id, debug=debug )
 
