@@ -7,3 +7,7 @@ class Message(models.Model):
 	sender_name = models.CharField(max_length=100, blank=True, help_text="The name of the sender. ie Joe Smith")
 	subject = models.CharField(max_length=300, blank=True, help_text="The message subject")
 	content = models.TextField()
+
+	def content_as_html(self):
+		"""Returns the content of this message as valid HTML"""
+		return self.content.replace('\n', '<br/>')
