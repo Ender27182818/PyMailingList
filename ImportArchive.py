@@ -38,9 +38,10 @@ def get_message_content(message):
 		else:
 			return message.get_payload()
 	
+	ACCEPTABLE_TYPES = ('text/plain', 'multipart/alternative')
 	for p in message.get_payload():
 		content = get_message_content(p)
-		if content is not None and p.get_content_type() is "text/plain":
+		if content is not None and p.get_content_type() in ACCEPTABLE_TYPES:
 			return content
 		
 def _split_from(f):
