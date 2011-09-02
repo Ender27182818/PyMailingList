@@ -1,5 +1,5 @@
 <p>PyMailingList archive</p>
 <ul>
 {% for m in messages %}
-	<li>{{ m.pk }} - {{ m.subject }} - {{ m.sender_name }} - {{m.sent_date}}</li>
+	<li>{{ m.pk }} - <a href="{% url PyMailingList.views.show_message m.pk %}">{{ m.subject }}</a> - {{ m.sender_name }} - {{m.sent_date}}</li>
 {% endfor %}
