@@ -1,5 +1,5 @@
 <p>PyMailingList archive</p>
 <ul>
 {% for m in messages %}
-	<li>{{ m.sender_name }} - {{ m.subject }} - {{m.date}}</li>
+	<li>{{ m.pk }} - {{ m.subject }} - {{ m.sender_name }} - {{m.sent_date}}</li>
 {% endfor %}
