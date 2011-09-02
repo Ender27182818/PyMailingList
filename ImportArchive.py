@@ -42,7 +42,7 @@ def get_message_content(message):
 	for p in message.get_payload():
 		content = get_message_content(p)
 		if content is not None and p.get_content_type() in ACCEPTABLE_TYPES:
-			return content
+			return content.replace('=\r\n', '')
 		
 def _split_from(f):
 	"""Given a from line like 'Eli Ribble <eribble@somewhere.com>' return a tuple of 'Eli Ribble' and 'eribble@somewhere.com'"""
