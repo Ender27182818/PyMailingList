@@ -54,7 +54,11 @@ def _split_from(f):
 def handle_message( imap_conn, message_id, message ):
 	"""Handle a message by putting it in the Django database""" 
 	f = message['from']
-	sender_name, sender_email = _split_from(f)
+	try:
+		sender_name, sender_email = _split_from(f)
+	except Exception, ex:
+		print( "Skipping message #{0} because I can't parse the from line '{1}'".format( message_id, f ) )
+		return
 	subject = message['subject']
 	if '[android-users]' not in subject:
 		subject = '[android-users] ' + subject
