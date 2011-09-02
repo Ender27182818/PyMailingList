@@ -2,6 +2,7 @@ import smtplib
 import ConfigParser
 import email
 from email.mime.multipart import MIMEMultipart
+from email.utils import COMMASPACE
 
 class SMTPConnectionError(Exception):
 	"""Simple class for all SMTPConnection errors"""
@@ -30,8 +31,7 @@ class SMTPConnection:
 	
 	def _ensure_connection(self):
 		"""Ensures that a connection is made and raises an error if not"""
-		if( not hasattr(self, 'connection') ):
-			raise SMTPConnectionError("You need to connect first")
+		self.connect()
 
 	def connect(self, debug=False):
 		"""Connects to the server specified in the config file"""
@@ -43,21 +43,22 @@ class SMTPConnection:
 		self.connection.login(self.username, self.password)
 		print( "Connected." )
 	
-	def send_message( self, to, subject, body ):
+	def send_message( self, to, subject, body, debug=False ):
 		"""Send a message with the given subject and body to the given recipient(s). Return true if it worked, false otherwise"""
 		self._ensure_connection()
-
-		if isinstance(to, tuple) or isinstance(to, list):
-			to_line = str.join(' ', to)
-		else:
-			to_line = repr(to)
+	
+		if debug:
+			print( "Sending message '{0}' to {1}".format( subject[:40], to ) )
 
 		# If it's just a string, send it as a plain string
 		if isinstance(body, str):
 			msg = email.MIMEText.MIMEText(body, 'plain')
 			msg['Subject'] = subject
 			msg['From'] = self.bot_name
-			self.connection.sendmail(self.bot_address, to_line, msg.as_string())
+			msg['To'] = to
+			if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string()[:30] ) )
+			self.connection.sendmail(self.bot_address, to, msg.as_string())
+			self.connection.quit()
 			return True
 		# Try some different types
 		else:
@@ -66,11 +67,15 @@ class SMTPConnection:
 				msg = MIMEMultipart()
 				msg['Subject'] = subject
 				msg['From'] = self.bot_name
+				msg['To'] = self.bot_address
 				for item in body:
 					if isinstance(item, email.message.Message):
 						msg.attach( item )
-				self.connection.sendmail(self.bot_address, to_line, msg.as_string())
+				if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string()[:30] ) )
+				self.connection.sendmail(self.bot_address, to, msg.as_string())
+				self.connection.quit()
 				return True
 			except TypeError:
+				self.connection.quit()
 				return False
 		
