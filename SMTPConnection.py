@@ -52,11 +52,12 @@ class SMTPConnection:
 
 		# If it's just a string, send it as a plain string
 		if isinstance(body, str):
+			if debug: print( "Sending as plain string" )
 			msg = email.MIMEText.MIMEText(body, 'plain')
 			msg['Subject'] = subject
 			msg['From'] = self.bot_name
-			msg['To'] = to
-			if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string()[:30] ) )
+			msg['To'] = ', '.join(to)
+			if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string() ) )
 			self.connection.sendmail(self.bot_address, to, msg.as_string())
 			self.connection.quit()
 			return True
