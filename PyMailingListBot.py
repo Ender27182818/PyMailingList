@@ -111,8 +111,12 @@ if __name__ == '__main__':
 	
 		except IMAPConnectionError, e:
 			print("IMAPConnection error: " + repr(e))
+			print("Attempting reconnect...")
+			imap_conn = IMAPConnection('config.txt')
+			imap_conn.connect(debug=options.debug)
 		except SMTPConnectionError, e:
 			print("SMTPConnection error: " + repr(e))
+			
 		
 			
 	

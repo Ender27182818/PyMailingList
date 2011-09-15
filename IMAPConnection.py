@@ -6,10 +6,14 @@ import email
 
 class IMAPConnectionError(Exception):
 	"""Simple class for all IMAPConnection errors"""
-	def __init__(self, value):
+	def __init__(self, value, inner_exception=None):
 		self.parameter = value
+		self.inner_exception = inner_exception
 	def __str__(self):
-		return repr(self.parameter)
+		if self.inner_exception:
+			return repr(self.parameter) + ": " + repr(self.inner_exception)
+		else:
+			return repr(self.parameter)
 
 class IMAPFolder:
 	# The regex used for parsing the data returned from an IMAP server
@@ -140,7 +144,11 @@ class IMAPConnection:
 		self._ensure_connection()
 
 		# Make sure there are messages in the inbox
-		response, statusline = self.connection.status( self.selected_folder, "(MESSAGES)" )
+		try:
+			response, statusline = self.connection.status( self.selected_folder, "(MESSAGES)" )
+		except imaplib.IMAP4.error, ex:
+			raise IMAPConnectionError("Received imaplib error while getting status", ex)
+
 		if response != "OK":
 			raise IMAPConnectionError("Bad response on status: " + response)
 		if debug:
