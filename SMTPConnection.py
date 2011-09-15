@@ -56,7 +56,7 @@ class SMTPConnection:
 			msg = email.MIMEText.MIMEText(body, 'plain')
 			msg['Subject'] = subject
 			msg['From'] = self.bot_name
-			msg['To'] = ', '.join(to)
+			msg['To'] = self.bot_address
 			if debug: print( "  sendmail( {0}, {1}, {2} )".format( self.bot_address, to, msg.as_string() ) )
 			self.connection.sendmail(self.bot_address, to, msg.as_string())
 			self.connection.quit()
